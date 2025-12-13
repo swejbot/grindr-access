@@ -3,6 +3,22 @@ import json
 import zlib
 from .utils import gen_l_dev_info
 
+base_url = "https://grindr.mobi"
+user_agent = "grindr3/25.20.0.147239;147239;Free;Android 14;sdk_gphone64_x86_64;Google"
+
+def get_headers(add_headers=[]):
+    return [
+        "accept: application/json",
+        "accept-encoding: gzip",
+        "accept-language: en-US",
+        "connection: Keep-Alive",
+        "host: grindr.mobi",
+        f"l-device-info: {gen_l_dev_info()}",
+        "l-locale: en_US",
+        "l-time-zone: Europe/Oslo",
+        "requirerealdeviceinfo: true",
+        f"user-agent: {user_agent}",
+    ] + add_headers
 
 def generic_jpeg_upload(path, image_io, auth_token=None, proxy=None, proxy_port=None):
     buffer = image_io.read()
@@ -16,22 +32,12 @@ def generic_jpeg_upload(path, image_io, auth_token=None, proxy=None, proxy_port=
         c.setopt(c.PROXYPORT, proxy_port)
         c.setopt(c.PROXYTYPE, pycurl.PROXYTYPE_HTTP)
 
-    c.setopt(c.URL, "https://grindr.mobi" + path)
+    c.setopt(c.URL, base_url + path)
     c.setopt(c.CUSTOMREQUEST, "POST")
 
-    headers = [
-        "accept: application/json",
-        "accept-encoding: gzip",
-        "accept-language: en-US",
-        "connection: Keep-Alive",
+    headers = get_headers([
         "content-type: image/jpeg",
-        "host: grindr.mobi",
-        f"l-device-info: {gen_l_dev_info()}",
-        "l-locale: en_US",
-        "l-time-zone: Europe/Oslo",
-        "requirerealdeviceinfo: true",
-        "user-agent: grindr3/24.17.1.131488;131488;Free;Android 14;sdk_gphone64_x86_64;Google",
-    ]
+    ])
 
     if auth_token is not None:
         headers.append("authorization: Grindr3 " + auth_token)
@@ -65,22 +71,12 @@ def generic_post(path, data, auth_token=None, proxy=None, proxy_port=None):
         c.setopt(c.PROXYPORT, proxy_port)
         c.setopt(c.PROXYTYPE, pycurl.PROXYTYPE_HTTP)
 
-    c.setopt(c.URL, "https://grindr.mobi" + path)
+    c.setopt(c.URL, base_url + path)
     c.setopt(c.CUSTOMREQUEST, "POST")
 
-    headers = [
-        "accept: application/json",
-        "accept-encoding: gzip",
-        "accept-language: en-US",
-        "connection: Keep-Alive",
+    headers = get_headers([
         "content-type: application/json; charset=UTF-8",
-        "host: grindr.mobi",
-        f"l-device-info: {gen_l_dev_info()}",
-        "l-locale: en_US",
-        "l-time-zone: Europe/Oslo",
-        "requirerealdeviceinfo: true",
-        "user-agent: grindr3/24.17.1.131488;131488;Free;Android 14;sdk_gphone64_x86_64;Google",
-    ]
+    ])
 
     if auth_token is not None:
         headers.append("authorization: Grindr3 " + auth_token)
@@ -114,23 +110,13 @@ def generic_put(path, data, auth_token=None, proxy=None, proxy_port=None):
         c.setopt(c.PROXYPORT, proxy_port)
         c.setopt(c.PROXYTYPE, pycurl.PROXYTYPE_HTTP)
 
-    c.setopt(c.URL, "https://grindr.mobi" + path)
+    c.setopt(c.URL, base_url + path)
     c.setopt(c.CUSTOMREQUEST, "PUT")
 
-    headers = [
-        "accept: application/json",
-        "accept-encoding: gzip",
-        "accept-language: en-US",
-        "connection: Keep-Alive",
+    headers = get_headers([
         "content-type: application/json; charset=UTF-8",
-        "host: grindr.mobi",
-        f"l-device-info: {gen_l_dev_info()}",
-        "l-locale: en_US",
-        "l-time-zone: Europe/Oslo",
-        "requirerealdeviceinfo: true",
-        "user-agent: grindr3/24.17.1.131488;131488;Free;Android 14;sdk_gphone64_x86_64;Google",
-        "Content-Length: " + str(len(data_json))
-    ]
+        "Content-Length: " + str(len(data_json)),
+    ])
 
     if auth_token is not None:
         headers.append("authorization: Grindr3 " + auth_token)
@@ -172,26 +158,14 @@ def generic_get(path, data, auth_token=None, proxy=None, proxy_port=None):
 
     c.setopt(
         c.URL,
-        "https://grindr.mobi"
+        base_url
         + path
         + "?"
         + "&".join([key + "=" + request_data[key] for key in request_data]),
     )
     c.setopt(c.CUSTOMREQUEST, "GET")
 
-    headers = [
-        "accept: application/json",
-        "accept-encoding: gzip",
-        "accept-language: en-US",
-        "connection: Keep-Alive",
-        "content-type: application/json; charset=UTF-8",
-        "host: grindr.mobi",
-        f"l-device-info: {gen_l_dev_info()}",
-        "l-locale: en_US",
-        "l-time-zone: Europe/Oslo",
-        "requirerealdeviceinfo: true",
-        "user-agent: grindr3/9.17.3.118538;118538;Free;Android 14;sdk_gphone64_x86_64;Google",
-    ]
+    headers = get_headers()
 
     if auth_token is not None:
         headers.append("authorization: Grindr3 " + auth_token)

@@ -58,7 +58,7 @@ class GrindrUser:
 
             if response["code"] == 27:
                 self.banned = True
-                raise Exception(f'Banned for {response['reason']}')
+                raise Exception(f"Banned for {response['reason']}")
 
             if response["code"] == 28:
                 self.banned = True
@@ -73,7 +73,7 @@ class GrindrUser:
         self.xmppToken = response["xmppToken"]
 
     @check_banned
-    def getProfiles(self, lat, lon):
+    def get_profiles(self, lat, lon):
         params = {
             "nearbyGeoHash": to_geohash(lat, lon),
             "onlineOnly": "false",
