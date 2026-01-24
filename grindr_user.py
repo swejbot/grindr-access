@@ -1,17 +1,6 @@
-from .generic_request import generic_post, generic_get, generic_put, generic_jpeg_upload
+from .http_client import HttpClient
 
-from .paths import (
-    SESSIONS,
-    TAP,
-    GET_USERS,
-    TAPS_RECIEVED,
-    GET_PROFILE,
-    STATUS,
-    ALBUM,
-    PROFILE,
-    IMAGES,
-    LOCATION
-)
+from .paths import paths
 from .utils import to_geohash
 import binascii
 from functools import wraps
@@ -35,19 +24,15 @@ class GrindrUser:
         self.authToken = None
         self.xmppToken = ""
 
-        self.proxy = None
-        self.proxy_port = None
+        self.http_client = HttpClient()
 
     def set_proxy(self, proxy, proxy_port):
-        self.proxy = proxy
-        self.proxy_port = proxy_port
+        self.http_client.set_proxy(proxy, proxy_port)
 
     def login(self, email, password):
-        response = generic_post(
-            SESSIONS,
-            {"email": email, "password": password, "token": ""},
-            proxy=self.proxy,
-            proxy_port=self.proxy_port,
+        response = self.http_client.post(
+            paths.SESSIONS,
+            body={"email": email, "password": password, "token": ""},
         )
 
         if "code" in response:
@@ -72,8 +57,10 @@ class GrindrUser:
         self.authToken = response["authToken"]
         self.xmppToken = response["xmppToken"]
 
+        self.http_client.set_auth_token(self.sessionId)
+
     @check_banned
-    def get_profiles(self, lat, lon, searchParams={}):
+    def get_profiles(self, lat, lon, searchParams={}, pageNumber=1):
         params = {
             "nearbyGeoHash": to_geohash(lat, lon),
             "onlineOnly": "false",
@@ -81,83 +68,90 @@ class GrindrUser:
             "faceOnly": "false",
             "notRecentlyChatted": "false",
             "fresh": "false",
-            "pageNumber": "1",
+            "pageNumber": str(pageNumber),
             "rightNow": "false",
         }
 
         params.update(searchParams)
-            auth_token=self.sessionId,
-            proxy=self.proxy,
-            proxy_port=self.proxy_port,
+
+        response = self.http_client.get(
+            paths.GET_USERS,
+            path_params=params
         )
+
         return response
 
     @check_banned
     def get_taps(self):
-        response = generic_get(
-            TAPS_RECIEVED,
-            {},
-            auth_token=self.sessionId,
-            proxy=self.proxy,
-            proxy_port=self.proxy_port,
+        response = self.http_client.get(
+            paths.TAPS_RECIEVED,
+            body={},
         )
         return response
 
     # type is a number from 1 - ?
     @check_banned
     def tap(self, profileId, type):
-        response = generic_post(
-            TAP,
-            {"recipientId": profileId, "tapType": type},
-            auth_token=self.sessionId,
-            proxy=self.proxy,
-            proxy_port=self.proxy_port,
+        response = self.http_client.post(
+            paths.TAP,
+            body={"recipientId": profileId, "tapType": type},
         )
         return response
 
     @check_banned
     def get_profile(self, profileId):
-        response = generic_get(
-            GET_PROFILE + profileId,
-            {},
-            auth_token=self.sessionId,
-            proxy=self.proxy,
-            proxy_port=self.proxy_port,
+        response = self.http_client.get(
+            paths.GET_PROFILE + str(profileId),
+        )
+        return response
+
+    @check_banned
+    def block_profile(self, profileId):
+        response = self.http_client.post(
+            paths.PROFILE_BLOCKS + str(profileId),
+            body={
+                "updateTime": 0
+            }
+        )
+        return response
+
+    @check_banned
+    def unblock_profile(self, profileId):
+        response = self.http_client.delete(
+            paths.PROFILE_BLOCKS + str(profileId),
+        )
+        return response
+
+    @check_banned
+    def get_blocked_profiles(self,):
+        response = self.http_client.get(
+            paths.PROFILE_BLOCK_LIST,
         )
         return response
 
     # profileIdList MUST be an array of profile ids
     @check_banned
     def get_profile_statuses(self, profileIdList):
-        response = generic_post(
-            STATUS,
-            {"profileIdList": profileIdList},
-            auth_token=self.sessionId,
-            proxy=self.proxy,
-            proxy_port=self.proxy_port,
+        response = self.http_client.post(
+            paths.STATUS,
+            body={"profileIdList": profileIdList},
         )
         return response
 
     @check_banned
     def get_album(self, profileId):
-        response = generic_post(
-            ALBUM,
-            {"profileId": profileId},
-            auth_token=self.sessionId,
-            proxy=self.proxy,
-            proxy_port=self.proxy_port,
+        response = self.http_client.post(
+            paths.ALBUM,
+            body={"profileId": profileId},
         )
         return response
 
     # returns session data (might renew it)
     @check_banned
     def sessions(self, email):
-        response = generic_post(
-            SESSIONS,
-            {"email": email, "token": "", "authToken": self.authToken},
-            auth_token=self.sessionId,
-            proxy=self.proxy,
-            proxy_port=self.proxy_port,
+        response = self.http_client.post(
+            paths.SESSIONS,
+            body={"email": email, "token": "", "authToken": self.authToken},
         )
 
         self.sessionId = response["sessionId"]
@@ -165,16 +159,15 @@ class GrindrUser:
         self.authToken = response["authToken"]
         self.xmppToken = response["xmppToken"]
 
+        self.http_client.set_auth_token(self.sessionId)
+
         return response
 
     @check_banned
     def update_profile(self, data):
-        response = generic_put(
-            PROFILE,
-            data,
-            auth_token=self.sessionId,
-            proxy=self.proxy,
-            proxy_port=self.proxy_port,
+        response = self.http_client.put(
+            paths.PROFILE,
+            body=data,
         )
         return response
 
@@ -196,12 +189,9 @@ class GrindrUser:
 
     @check_banned
     def upload_image(self, file_io):
-        return generic_jpeg_upload(
+        return self.http_client.post(
             "/v3/me/profile/images?thumbCoords=194%2C0%2C174%2C20",
-            file_io,
-            auth_token=self.sessionId,
-            proxy=self.proxy,
-            proxy_port=self.proxy_port,
+            body=file_io,
         )
 
     @check_banned
@@ -211,7 +201,10 @@ class GrindrUser:
             "secondaryImageHashes": secondary_hashes,
         }
 
-        return generic_put(IMAGES, data, auth_token=self.sessionId, proxy=self.proxy, proxy_port=self.proxy_port)
+        return self.http_client.put(
+            paths.IMAGES, 
+            body=data,
+        )
 
     @check_banned
     def set_location(self, lat, lng):
@@ -219,4 +212,7 @@ class GrindrUser:
             "geohash": to_geohash(lat, lng)
         }
 
-        return generic_put(LOCATION, data, auth_token=self.sessionId, proxy=self.proxy, proxy_port=self.proxy_port)
+        return self.http_client.put(
+            paths.LOCATION,
+            body=data,
+        )
