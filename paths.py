@@ -3,7 +3,7 @@ class paths:
     GET_USERS = "/v1/cascade"
     GET_PROFILE = "/v4/profiles/"
     TAPS_RECIEVED = "/v1/interactions/taps/received"
-    TAP = "/v1/interactions/taps"
+    TAP = "/v2/taps/add"
     STATUS = "/v4/profiles/status"
     ALBUM = "/v2/albums/shares"
     PROFILE = "/v3.1/me/profile"
